@@ -20,18 +20,11 @@ var User = mongoose.model('User');
 var jwt = require('express-jwt');
 var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
 
-//POST OBJECT
-//get-methode: definieerd de URL voor de route , bevat alle posts
-//posts en de functie
-//handeld de request af
-//request handler: de query find zorgt ervoor dat alle post aanwezig in de
-//database wordt getoond.
 router.get('/posts', function(req, res, next){
 	Post.find(function(err, posts){
 	    if (err){
 		   return next(err);
 	    }
-//res.json: wordt gebruikt om de gevonden posts aan de gebruiker te tonen
 	    res.json(posts);
 	});
 });
@@ -51,20 +44,38 @@ router.post('/posts', auth, function(req, res, next){
 //preloading posts
 //param()function: automatisch laden van een object
 router.param('post',function(req, res, next, id){
+
 	var query = Post.findById(id);
 
 	query.exec(function(err, post){
 		if(err) {
+
 			return next(err);
 		}
 		if(!post){
-			return next(new Error('can \'t find post'));
+
+			return next(new Error("can't find post"));
 		}
+    
 		req.post = post;
 		return next();
 	});
 });
-
+//toegevoegd
+router.param('comment', function(req, res, next,id){
+  var query1 = Comment.findById(id);
+  var findCOMMENT = function(err, commment){
+    if(err){
+      return next(err);
+    }
+    if(!comment){
+      return next(new Error("Can't find comment"));
+    }
+    req.comment = comment;
+    return next();
+  };
+  query.exec(findCOMMENT);
+});
 //returns a single post
 router.get('/posts/:post', function(req, res, next){
 	//de method populate(): simultaan ophalen van de comments en posts
@@ -72,12 +83,14 @@ router.get('/posts/:post', function(req, res, next){
 		if(err){
 			return next(err);
 		}
-		res.json(req.post);
+    res.json(req.post);
+		//res.json(req.post);
 	});
 });
 
 //maakt een route voor upvote post
 router.put('/posts/:post/upvote', auth, function(req, res, next){
+
 	req.post.upvote(function(err, post){
 		if (err) {
 			return next(err);
@@ -101,14 +114,14 @@ router.post('/posts/:post/comments', auth, function(req, res, next){
 		if (err) {
 			return next (err);
 		}
-		res.json(comments);
+		res.json(comment);
 		});
 	});
 });
 
 //aanmaken route voor upvote comment
-router.put('/posts/:post/comments/:comment/upvote', auth, function(req, res, next){
-	req.post.upvote(function(err, post){
+router.put('/posts/:post/comments/:comments/upvote', auth, function(req, res, next){
+  req.post.upvote(function(err, post){
 		if(err){
 			return next(err);
 		}
@@ -123,7 +136,14 @@ router.post('/register', function(req, res, next){
   }
   var user = new User();
   user.username = req.body.username;
-  user.setPassword(req.body.password)
+  user.setPassword(req.body.password);
+  if(! user.setEmail(req.body.email)){
+    var err = {message : "invalid email", error : { status : 400, stack : "" }};
+
+    return res.status(400).json(err);
+
+  }
+  user.setBio(req.body.bio);
   user.save(function (err){
     if(err) {
       return next(err);
